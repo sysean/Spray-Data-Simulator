@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { DatePicker, DatePickerProps, Input, Space, Button, Switch, Slider, Image } from 'antd';
-import type { RadioChangeEvent } from 'antd';
+import React, { useState } from 'react';
+import { DatePicker, DatePickerProps, Space, Button, Switch, Slider, Image, InputNumber } from 'antd';
 import { GpsSender } from './utils';
-import { Radio } from 'antd';
 import './my.css'
+import { useDebounceEffect } from 'ahooks';
 
 const gpsSender = new GpsSender();
 
@@ -12,59 +11,76 @@ const gpsSender = new GpsSender();
 
 // currentLat 和 currentLon 我希望只保留小数点后四位
 
-var currentDateTime = new Date();
-
 const App: React.FC = () => {
     const [dateTimeValue, setDateTimeValue] = useState('');
-    const [directValue, setDirectValue] = useState(1);
+    const [directValue, setDirectValue] = useState(0);
     const [isStart, setIsStart] = useState(false);
-    const [timeInterval, setTimeInterval] = useState(3);
+    const [currentDateTime, setCurrentDateTime] = useState(new Date());
+    const [firstSendGpsPoint, setFirstSendGpsPoint] = useState(true);
 
     const [currentLat, setCurrentLat] = useState(0);
     const [currentLon, setCurrentLon] = useState(0);
 
-    // dateTimeValue 需要在定时器开始后，根据时间间隔，来更新时间字符串
+    const marks = {
+        0: '北',
+        90: '东',
+        180: '南',
+        270: '西',
+        359: '北'
+      };
 
-    useEffect(() => {
-        if (dateTimeValue) {
+    // dateTimeValue 需要在定时器开始后，根据时间间隔，来更新时间字符串
+    useDebounceEffect(
+    () => {
+        if (dateTimeValue && isStart) {
             console.log('currentDateTime: ', currentDateTime);
 
             // 需要格式化为 2021-08-31T16:00:00+08:00
             // const currentDatetimeStr = currentDateTime.toISOString().replace(/\.\d{3}Z$/, 'Z')
-            const currentDatetimeStr = currentDateTime.toISOString()
-            let direction = 90
-            switch (directValue) {
-                case 1: direction = 90; break;
-                case 2: direction = 270; break;
-                case 3: direction = 180; break;
-                case 4: direction = 0; break;
+            const currentDatetimeStr = currentDateTime.toISOString();
+            const baseParams = {
+                lat: currentLat,
+                lon: currentLon,
+                datetime: currentDatetimeStr,
             }
-
             // gpsSender.sendGpsPoint(newLat, newLon, timeString);
-            gpsSender.sendGpsPoint({ lat: currentLat, lon: currentLon, datetime: currentDatetimeStr, isStart: isStart, direct: directValue, direction: direction });
+            const params = {
+                isStart: isStart,
+                direct: 0,
+                direction: directValue
+            }
+            gpsSender.sendGpsPoint(firstSendGpsPoint ? {...params, ...baseParams} : params).then((res) => {
+                console.log('res: ', res);
+                setFirstSendGpsPoint(false);
+            }).catch((e) => {
+                console.log('error', e);
+            })
 
         }
-    }, [isStart, dateTimeValue, currentLat, currentLon, directValue, timeInterval]);
+    },
+    [isStart, dateTimeValue, currentLat, currentLon, directValue, currentDateTime],
+    {
+        wait: 1000,
+    },
+    );
 
     const onDateTimeOk = (value: DatePickerProps['value']) => {
-        const v = value!.format('YYYY-MM-DDTHH:mm:ssZ')
-        currentDateTime = new Date(v);
+        const v = value!.format('YYYY-MM-DDTHH:mm:ssZ');
+        setCurrentDateTime(new Date(v))
         console.log('onOk: ', v, currentDateTime);
         setDateTimeValue(v)
     };
 
-    const onDirectChange = (e: RadioChangeEvent) => {
-        setDirectValue(e.target.value);
+    const onDirectChange = (e: number | null) => {
+        if (e === null) {
+            return;
+        }
+        setDirectValue(e);
     };
 
     const onSwitchChange = (checked: boolean) => {
         setIsStart(checked);
     };
-
-    const onSliderChange = (value: number) => {
-        console.log('slider change: ', value);
-        setTimeInterval(value);
-    }
 
     const onResetData = () => {
         setIsStart(false);
@@ -91,14 +107,14 @@ const App: React.FC = () => {
                         <Space direction="vertical" size={20} align="start">
                             <div className='one'>
                                 <label htmlFor="lat" style={{ marginRight: '10px' }}>Lat: </label>
-                                <Input type="number" id="lat" name="lat" value={currentLat} onChange={(e) => {
-                                    setCurrentLat(Number(e.target.value))
+                                <InputNumber min={-90} max={90} id="lat" name="lat" value={currentLat} disabled={isStart} onChange={(e) => {
+                                    setCurrentLat(Number(e))
                                 }} />
                             </div>
                             <div className='one'>
                                 <label htmlFor="lon" style={{ marginRight: '10px' }}>lon: </label>
-                                <Input type="number" id="lon" name="lon" value={currentLon} onChange={(e) => {
-                                    setCurrentLon(Number(e.target.value))
+                                <InputNumber min={-180} max={180} type="number" id="lon" name="lon" disabled={isStart} value={currentLon} onChange={(e) => {
+                                    setCurrentLon(Number(e))
                                 }} />
                             </div>
                         </Space>
@@ -107,23 +123,21 @@ const App: React.FC = () => {
                     <div className='first-bar'>
                         <h3>初始时间设定</h3>
                         <Space direction="vertical" size={10} align="start">
-                            <DatePicker showTime onOk={onDateTimeOk} />
+                            <DatePicker showTime onOk={onDateTimeOk} disabled={isStart} />
                         </Space>
                     </div>
 
                     <div className='first-bar'>
-                        <h3>数据生成间隔</h3>
-                        <Slider defaultValue={3} max={10} min={1} value={timeInterval} onChange={onSliderChange} />
-                    </div>
-
-                    <div className='first-bar'>
                         <h3>方向</h3>
-                        <Radio.Group onChange={onDirectChange} value={directValue}>
-                            <Radio value={1}>东</Radio>
-                            <Radio value={2}>西</Radio>
-                            <Radio value={3}>南</Radio>
-                            <Radio value={4}>北</Radio>
-                        </Radio.Group>
+                        <Slider min={0} max={359} marks={marks} defaultValue={directValue} onChange={onDirectChange} value={directValue}/>
+                        <InputNumber
+                            min={0}
+                            max={359}
+                            style={{ margin: '16px 0' }}
+                            value={directValue}
+                            onChange={onDirectChange}
+                            addonAfter="°"
+                        />
                     </div>
                 </div>
 
@@ -131,12 +145,6 @@ const App: React.FC = () => {
                     <div className={isStart ? "circle-breath" : "circle-breath-static"}>
                         {isStart ? "run" : "stop"}
                     </div>
-                    <Space style={{ marginTop: '50px' }} direction="vertical" size={20} align="start">
-                        <text style={{ width: '150px' }}>current position:</text>
-                        {/*保留小数点后4位*/}
-                        <text style={{ width: '50px' }}>Lat: {currentLat.toFixed(4)}</text>
-                        <text style={{ width: '50px' }}>lon: {currentLon.toFixed(4)}</text>
-                    </Space>
                 </div>
             </div>
         </div>

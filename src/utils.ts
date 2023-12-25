@@ -1,8 +1,8 @@
 interface Point {
-    lat: number;
-    lon: number;
+    lat?: number;
+    lon?: number;
     direct: number;
-    datetime: string;
+    datetime?: string;
     isStart: boolean;
     direction: number;
 }
