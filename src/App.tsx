@@ -5,32 +5,7 @@ import { GpsSender } from './utils';
 import { Radio } from 'antd';
 import './my.css'
 
-
-/*
-需求如下:
-当点击 Switch 为 开启的时候，获取界面输入的经纬度数据，以及时间数据，以及方向数据，根据时间间隔(单位:秒)，定时
-生成数据，并且将 经纬度和时间字符串向后端发起请求，将数据传过去
-
-*/
-
-const gpsSender = new GpsSender(3);
-
-const LatlonStep = 0.0001;
-
-const move = (lat: number, lon: number, direct: number) => {
-    switch (direct) {
-        case 1:
-            return [lat + LatlonStep, lon];
-        case 2:
-            return [lat - LatlonStep, lon];
-        case 3:
-            return [lat, lon + LatlonStep];
-        case 4:
-            return [lat, lon - LatlonStep];
-        default:
-            return [lat, lon];
-    }
-}
+const gpsSender = new GpsSender();
 
 // 我需要一个定时器，每隔一段时间，就生成一个数据，然后将数据传给后端
 // 生成数据的时候，需要将经纬度和时间字符串传给后端
@@ -48,39 +23,27 @@ const App: React.FC = () => {
     const [currentLat, setCurrentLat] = useState(0);
     const [currentLon, setCurrentLon] = useState(0);
 
-   
-
     // dateTimeValue 需要在定时器开始后，根据时间间隔，来更新时间字符串
 
     useEffect(() => {
-        let intervalId: number | null = null;
+        if (dateTimeValue) {
+            console.log('currentDateTime: ', currentDateTime);
 
-        if (isStart && dateTimeValue) {
-            intervalId = setInterval(() => {
-                const [newLat, newLon] = move(currentLat, currentLon, directValue);
-                setCurrentLat(newLat);
-                setCurrentLon(newLon);
-
-                console.log('gps point: ', newLat, newLon, dateTimeValue);
-
-                console.log('currentDateTime: ', currentDateTime);
-
-                // 这里需要每次更新时间字符串，然后将数据传给后端
-                currentDateTime.setSeconds(currentDateTime.getSeconds() + timeInterval);
-
-                // 需要格式化为 2021-08-31T16:00:00Z
-                const currentDatetimeStr = currentDateTime.toISOString().replace(/\.\d{3}Z$/, 'Z')
-
-                // gpsSender.sendGpsPoint(newLat, newLon, timeString);
-                gpsSender.sendGpsPoint({ lat: newLat, lon: newLon, datetime: currentDatetimeStr })
-            }, timeInterval * 1000);
-        }
-
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
+            // 需要格式化为 2021-08-31T16:00:00+08:00
+            // const currentDatetimeStr = currentDateTime.toISOString().replace(/\.\d{3}Z$/, 'Z')
+            const currentDatetimeStr = currentDateTime.toISOString()
+            let direction = 90
+            switch (directValue) {
+                case 1: direction = 90; break;
+                case 2: direction = 270; break;
+                case 3: direction = 180; break;
+                case 4: direction = 0; break;
             }
-        };
+
+            // gpsSender.sendGpsPoint(newLat, newLon, timeString);
+            gpsSender.sendGpsPoint({ lat: currentLat, lon: currentLon, datetime: currentDatetimeStr, isStart: isStart, direct: directValue, direction: direction });
+
+        }
     }, [isStart, dateTimeValue, currentLat, currentLon, directValue, timeInterval]);
 
     const onDateTimeOk = (value: DatePickerProps['value']) => {
