@@ -24,6 +24,7 @@ const App: React.FC = () => {
     const [firstSendGpsPoint, setFirstSendGpsPoint] = useState(true);
     const [timeoutList, setTimeoutList] = useState<number[]>([]);
     const [mode, setMode] = useState<number>(1);
+    const [count, setCount] = useState<number>(0);
 
     const [currentLat, setCurrentLat] = useState(0);
     const [currentLon, setCurrentLon] = useState(0);
@@ -90,6 +91,7 @@ const App: React.FC = () => {
                 direct: 0,
                 direction: typeof defaultDirectValue === 'number'  ? defaultDirectValue : directValue,
                 mode: mode,
+                count: count,
             }
             if (firstSendGpsPoint) {
                 setFirstSendGpsPoint(false);
@@ -198,7 +200,7 @@ const App: React.FC = () => {
                     <div className='first-bar'>
                         <h3>Set initial time</h3>
                         <Space direction="vertical" size={10} align="start">
-                            <DatePicker showTime onChange={onDateTimeOk} disabled={isStart} />
+                            <DatePicker className='inputBasicStyle' showTime onChange={onDateTimeOk} disabled={isStart} />
                         </Space>
                     </div>
 
@@ -206,6 +208,7 @@ const App: React.FC = () => {
                         <h3>Path pattern</h3>
                         <Space direction="vertical" size={10} align="start">
                             <Select
+                                className='inputBasicStyle'
                                 disabled={isStart}
                                 value={mode}
                                 onChange={(e) => {
@@ -215,6 +218,20 @@ const App: React.FC = () => {
                                     { value: 1, label: 'Lateral zigzag route' },
                                     { value: 2, label: 'Vertical zigzag route' },
                                 ]}
+                            />
+                        </Space>
+                    </div>
+
+                    <div className='first-bar'>
+                        <h3>Data volume</h3>
+                        <Space direction="vertical" size={10} align="start">
+                            <InputNumber
+                                className='inputBasicStyle'
+                                min={0}
+                                precision={0}
+                                value={count}
+                                onChange={(e) => setCount(Number(e))}
+                                disabled={isStart}
                             />
                         </Space>
                     </div>
@@ -245,7 +262,7 @@ const App: React.FC = () => {
                     <div className='first-bar'>
                         <h3>Delete selected date data</h3>
                         <Space direction='horizontal' size={10} align="start">
-                            <DatePicker onChange={deleteTimeDataChange} disabled={isStart} value={rmDate ? dayjs(rmDate) : undefined} />
+                            <DatePicker className='inputBasicStyle' onChange={deleteTimeDataChange} disabled={isStart} value={rmDate ? dayjs(rmDate) : undefined} />
                             <Popconfirm
                                 title="Delete data?"
                                 description="Are you sure you want to delete the data for this day?"

@@ -30,6 +30,10 @@ body {
     }
 }
 
+.inputBasicStyle {
+    width: 215px;
+}
+
 .content {
     display: flex;
     flex-direction: row;
