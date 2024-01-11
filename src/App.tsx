@@ -205,7 +205,7 @@ const App: React.FC = () => {
                     </div>
 
                     <div className='first-bar'>
-                        <h3>Path pattern</h3>
+                        <h3>Select Field</h3>
                         <Space direction="vertical" size={10} align="start">
                             <Select
                                 className='inputBasicStyle'
@@ -215,8 +215,8 @@ const App: React.FC = () => {
                                     setMode(e);
                                 }}
                                 options={[
-                                    { value: 1, label: 'Lateral zigzag route' },
-                                    { value: 2, label: 'Vertical zigzag route' },
+                                    { value: 1, label: 'Fresno County' },
+                                    { value: 2, label: 'UCDavis' },
                                 ]}
                             />
                         </Space>
